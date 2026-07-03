@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Number Hall Bingo</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1035;
+    --ink-2:#2A1B4D;
+    --panel:#241640;
+    --panel-2:#2E1C52;
+    --gold:#FFC857;
+    --gold-dim:#8C7238;
+    --magenta:#FF4D6D;
+    --teal:#2EC4B6;
+    --cream:#FFF8ED;
+    --cream-dim:#C9BFDB;
+    --line: rgba(255,248,237,0.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #3A2166 0%, var(--ink) 55%),
+      var(--ink);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .app{
+    max-width:480px;
+    margin:0 auto;
+    padding:16px 16px 32px;
+    min-height:100vh;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .brand h1{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:0.2px;
+    margin:0;
+    color:var(--cream);
+  }
+  .brand h1 span{color:var(--gold);}
+  .wallet-pill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:7px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:14px;
+    color:var(--gold);
+  }
+
+  /* ---- Ticket / caller board (signature element) ---- */
+  .ticket{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:20px;
+    position:relative;
+    margin-bottom:18px;
+    overflow:hidden;
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width:22px;height:22px;
+    background:var(--ink);
+    border-radius:50%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .ticket-eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--cream-dim);
+    margin-bottom:10px;
+  }
+  .caller-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .caller-ball{
+    width:84px;height:84px;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #FFE9AE, var(--gold) 55%, var(--gold-dim) 100%);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    box-shadow:0 8px 20px rgba(255,200,87,0.25), inset 0 -6px 10px rgba(0,0,0,0.15);
+  }
+  .caller-ball span{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:30px;
+    color:var(--ink);
+  }
+  .caller-meta{flex:1;min-width:0;}
+  .caller-meta .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--teal);
+    letter-spacing:1px;
+    margin-bottom:4px;
+  }
+  .caller-history{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-top:12px;
+    scrollbar-width:none;
+  }
+  .caller-history::-webkit-scrollbar{display:none;}
+  .chip{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--cream-dim);
+    background:rgba(255,248,237,0.06);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:5px 8px;
+    flex-shrink:0;
+  }
+
+  /* ---- Screens ---- */
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* Menu */
+  .menu-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .menu-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:18px 14px;
+    text-align:left;
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .menu-card:active{transform:scale(0.97);}
+  .menu-card .icon{font-size:26px;display:block;margin-bottom:10px;}
+  .menu-card .title{font-weight:700;font-size:15px;display:block;margin-bottom:2px;}
+  .menu-card .sub{font-size:12px;color:var(--cream-dim);}
+  .menu-card.primary{
+    grid-column:1 / -1;
+    background:linear-gradient(135deg, var(--magenta), #C93A57);
+    border-color:transparent;
+  }
+  .menu-card.primary .sub{color:rgba(255,248,237,0.75);}
+
+  /* Lobby */
+  .stat-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .stat{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 10px;
+    text-align:center;
+  }
+  .stat .n{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:18px;
+    color:var(--gold);
+  }
+  .stat .l{
+    font-size:11px;
+    color:var(--cream-dim);
+    margin-top:2px;
+  }
+  .num-grid{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:6px;
+    margin-bottom:18px;
+  }
+  .num-btn{
+    aspect-ratio:1;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--cream);
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .num-btn.taken{
+    background:rgba(46,196,182,0.15);
+    border-color:var(--teal);
+    color:var(--teal);
+  }
+  .num-btn.mine{
+    background:var(--gold);
+    color:var(--ink);
+    border-color:var(--gold);
+  }
+
+  /* Card */
+  .bingo-card{
+    background:var(--cream);
+    border-radius:18px;
+    padding:14px;
+    margin-bottom:18px;
+  }
+  .bingo-card .letters{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:6px;
+    margin-bottom:6px;
+  }
+  .bingo-card .letters div{
+    text-align:center;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:18px;
+    color:var(--magenta);
+  }
+  .cell-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:6px;
+  }
+  .cell{
+    aspect-ratio:1;
+    border-radius:10px;
+    background:#F1E8D8;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:14px;
+    color:var(--ink);
+  }
+  .cell.free{
+    background:var(--ink);
+    color:var(--gold);
+    font-family:'Baloo 2',sans-serif;
+    font-size:11px;
+  }
+  .cell.marked{
+    background:var(--teal);
+    color:#082523;
+  }
+
+  /* Buttons */
+  .btn{
+    width:100%;
+    padding:15px;
+    border-radius:14px;
+    border:none;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .btn-primary{
+    background:var(--gold);
+    color:var(--ink);
+  }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--cream-dim);
+    margin-top:10px;
+  }
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{flex:1;}
+
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    color:var(--cream-dim);
+    font-size:13px;
+    margin-bottom:14px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+
+  .banner{
+    text-align:center;
+    padding:8px;
+    border-radius:12px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    margin-bottom:14px;
+  }
+  .banner.win{background:rgba(46,196,182,0.15);color:var(--teal);border:1px solid var(--teal);}
+  .banner.info{background:rgba(255,200,87,0.12);color:var(--gold);border:1px solid var(--gold-dim);}
+
+  .instr p, .instr li{color:var(--cream-dim);font-size:14px;line-height:1.6;}
+  .instr strong{color:var(--cream);}
+  .disclaimer{
+    margin-top:24px;
+    font-size:11px;
+    color:var(--cream-dim);
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="brand">
+    <h1>Number <span>Hall</span></h1>
+    <div class="wallet-pill">★ <span id="walletDisplay">100</span></div>
+  </div>
+
+  <!-- MENU -->
+  <div class="screen active" id="screen-menu">
+    <div class="menu-grid">
+      <div class="menu-card primary" onclick="goTo('lobby')">
+        <span class="icon">🎟️</span>
+        <span class="title">Play Bingo</span>
+        <span class="sub">Pick a number, join the pot</span>
+      </div>
+      <div class="menu-card" onclick="showBalance()">
+        <span class="icon">★</span>
+        <span class="title">Balance</span>
+        <span class="sub" id="balanceSub">100 points</span>
+      </div>
+      <div class="menu-card" onclick="deposit()">
+        <span class="icon">➕</span>
+        <span class="title">Add points</span>
+        <span class="sub">Demo top-up</span>
+      </div>
+      <div class="menu-card" style="grid-column:1 / -1;" onclick="goTo('instructions')">
+        <span class="icon">📖</span>
+        <span class="title">How to play</span>
+        <span class="sub">Rules &amp; winning patterns</span>
+      </div>
+    </div>
+    <div class="disclaimer">
+      Points are virtual and for entertainment only — no real money is deposited,
+      withdrawn, or wagered anywhere in this app.
+    </div>
+  </div>
+
+  <!-- LOBBY -->
+  <div class="screen" id="screen-lobby">
+    <div class="back-link" onclick="goTo('menu')">← Menu</div>
+    <div class="stat-row">
+      <div class="stat"><div class="n" id="lobbyStake">10</div><div class="l">STAKE</div></div>
+      <div class="stat"><div class="n" id="lobbyPot">0</div><div class="l">POT</div></div>
+      <div class="stat"><div class="n" id="lobbyJoined">0</div><div class="l">JOINED</div></div>
+    </div>
+    <div id="lobbyBanner"></div>
+    <div class="num-grid" id="numGrid"></div>
+    <button class="btn btn-primary" id="startBtn" onclick="startGame()">🚀 Start game</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div class="ticket">
+      <div class="ticket-eyebrow">Now Calling</div>
+      <div class="caller-row">
+        <div class="caller-ball"><span id="currentBall">--</span></div>
+        <div class="caller-meta">
+          <div class="label" id="letterLabel">WAITING</div>
+          <div style="font-size:13px;color:var(--cream-dim);" id="drawCount">0 of 75 drawn</div>
+        </div>
+      </div>
+      <div class="caller-history" id="historyRow"></div>
+    </div>
+    <div class="bingo-card">
+      <div class="letters"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+      <div class="cell-grid" id="cardGrid"></div>
+    </div>
+    <div id="gameBanner"></div>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="screen" id="screen-instructions">
+    <div class="back-link" onclick="goTo('menu')">← Menu</div>
+    <div class="instr">
+      <p><strong>1. Play Bingo</strong> — open the lobby and tap any free number
+      from 1–100. That reserves you a card and costs the stake shown.</p>
+      <p><strong>2. Start the game</strong> — once you've joined, tap Start.
+      Numbers get called automatically and your card marks itself.</p>
+      <p><strong>3. Win</strong> — complete any full row, full column, either
+      diagonal, or all four corners to win the pot.</p>
+      <p><strong>Points</strong> — this is a demo wallet. Use "Add points" from
+      the menu for more play-money at any time.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if (tg) { tg.ready(); tg.expand(); }
+
+const COLUMN_LETTERS = ['B','I','N','G','O'];
+const COLUMN_RANGES = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+const STAKE = 10;
+const STARTING_BALANCE = 100;
+const DEMO_TOPUP = 50;
+const DRAW_INTERVAL_MS = 2200;
+
+let state = {
+  balance: STARTING_BALANCE,
+  lobbyTaken: new Set(),
+  myNumber: null,
+  card: null,
+  marked: new Set(),
+  drawn: [],
+  pool: [],
+  timer: null,
+};
+
+// ---- storage (Telegram CloudStorage with localStorage fallback) ----
+function saveBalance(v){
+  state.balance = v;
+  document.getElementById('walletDisplay').textContent = v;
+  document.getElementById('balanceSub').textContent = v + ' points';
+  if (tg && tg.CloudStorage) {
+    tg.CloudStorage.setItem('balance', String(v));
+  } else {
+    localStorage.setItem('bingo_balance', String(v));
+  }
+}
+function loadBalance(){
+  if (tg && tg.CloudStorage) {
+    tg.CloudStorage.getItem('balance', (err, val) => {
+      const v = (!err && val) ? parseInt(val, 10) : STARTING_BALANCE;
+      saveBalance(v);
+    });
+  } else {
+    const v = parseInt(localStorage.getItem('bingo_balance') || STARTING_BALANCE, 10);
+    saveBalance(v);
+  }
+}
+
+function haptic(kind){
+  if (tg && tg.HapticFeedback) {
+    if (kind === 'success') tg.HapticFeedback.notificationOccurred('success');
+    else if (kind === 'error') tg.HapticFeedback.notificationOccurred('error');
+    else tg.HapticFeedback.impactOccurred('light');
+  }
+}
+
+// ---- navigation ----
+function goTo(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (name === 'lobby') renderLobby();
+}
+
+function showBalance(){
+  haptic('light');
+  goTo('menu');
+}
+
+function deposit(){
+  saveBalance(state.balance + DEMO_TOPUP);
+  haptic('success');
+  if (tg) tg.showPopup ? tg.showPopup({title:'Points added', message:`+${DEMO_TOPUP} demo points added.`, buttons:[{type:'ok'}]}) : alert(`+${DEMO_TOPUP} demo points added.`);
+  else alert(`+${DEMO_TOPUP} demo points added.`);
+}
+
+// ---- lobby ----
+function renderLobby(){
+  document.getElementById('lobbyStake').textContent = STAKE;
+  document.getElementById('lobbyPot').textContent = state.lobbyTaken.size * STAKE;
+  document.getElementById('lobbyJoined').textContent = state.lobbyTaken.size;
+  const grid = document.getElementById('numGrid');
+  grid.innerHTML = '';
+  for (let n = 1; n <= 100; n++){
+    const btn = document.createElement('button');
+    btn.className = 'num-btn' + (state.myNumber === n ? ' mine' : (state.lobbyTaken.has(n) ? ' taken' : ''));
+    btn.textContent = state.lobbyTaken.has(n) && state.myNumber !== n ? '✓' : n;
+    btn.onclick = () => pickNumber(n);
+    grid.appendChild(btn);
+  }
+  document.getElementById('lobbyBanner').innerHTML = state.myNumber
+    ? `<div class="banner win">You reserved card #${state.myNumber}</div>`
+    : `<div class="banner info">Balance: ${state.balance} pts — tap a number to join (stake ${STAKE} pts)</div>`;
+}
+
+function pickNumber(n){
+  if (state.myNumber !== null) { haptic('error'); return; }
+  if (state.lobbyTaken.has(n)) { haptic('error'); return; }
+  if (state.balance < STAKE) {
+    haptic('error');
+    const msg = `Not enough points (${state.balance}). Use "Add points" from the menu.`;
+    if (tg && tg.showPopup) tg.showPopup({title:'Insufficient balance', message: msg, buttons:[{type:'ok'}]});
+    else alert(msg);
+    return;
+  }
+  state.lobbyTaken.add(n);
+  state.myNumber = n;
+  saveBalance(state.balance - STAKE);
+  state.card = generateCard(n);
+  haptic('success');
+  renderLobby();
+}
+
+function generateCard(seed){
+  // simple seeded shuffle so the same number always gives the same card
+  let s = seed * 9301 + 49297;
+  function rand(){ s = (s * 9301 + 49297) % 233280; return s / 233280; }
+  const card = [[],[],[],[],[]];
+  for (let col = 0; col < 5; col++){
+    const [lo, hi] = COLUMN_RANGES[col];
+    const pool = [];
+    for (let v = lo; v <= hi; v++) pool.push(v);
+    for (let i = pool.length - 1; i > 0; i--){
+      const j = Math.floor(rand() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    for (let row = 0; row < 5; row++) card[row][col] = pool[row];
+  }
+  card[2][2] = 0; // FREE
+  return card;
+}
+
+// ---- game ----
+function startGame(){
+  if (state.myNumber === null){
+    haptic('error');
+    const msg = 'Reserve a number first by tapping one on the grid.';
+    if (tg && tg.showPopup) tg.showPopup({title:'Join first', message: msg, buttons:[{type:'ok'}]});
+    else alert(msg);
+    return;
+  }
+  state.marked = new Set(['2,2']);
+  state.drawn = [];
+  state.pool = [];
+  for (let i = 1; i <= 75; i++) state.pool.push(i);
+  goTo('game');
+  renderCard();
+  renderCallHistory();
+  document.getElementById('gameBanner').innerHTML = '';
+  state.timer = setInterval(drawNext, DRAW_INTERVAL_MS);
+}
+
+function drawNext(){
+  if (state.pool.length === 0){
+    clearInterval(state.timer);
+    document.getElementById('gameBanner').innerHTML = '<div class="banner info">All 75 numbers called — no bingo this round.</div>';
+    return;
+  }
+  const idx = Math.floor(Math.random() * state.pool.length);
+  const number = state.pool.splice(idx, 1)[0];
+  state.drawn.push(number);
+  markIfPresent(number);
+  updateCallerDisplay(number);
+  renderCallHistory();
+  renderCard();
+  const win = checkWin();
+  if (win){
+    clearInterval(state.timer);
+    const pot = STAKE * 5; // demo multiplier since this is single-device play
+    saveBalance(state.balance + pot);
+    haptic('success');
+    document.getElementById('gameBanner').innerHTML =
+      `<div class="banner win">🏆 BINGO! ${win} — you win ${pot} pts (balance ${state.balance})</div>`;
+    state.myNumber = null;
+    state.lobbyTaken.clear();
+  }
+}
+
+function markIfPresent(number){
+  for (let r = 0; r < 5; r++)
+    for (let c = 0; c < 5; c++)
+      if (state.card[r][c] === number) state.marked.add(r + ',' + c);
+}
+
+function checkWin(){
+  const m = state.marked;
+  for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => m.has(r+','+c))) return 'Row ' + (r+1);
+  for (let c = 0; c < 5; c++) if ([0,1,2,3,4].every(r => m.has(r+','+c))) return 'Column ' + COLUMN_LETTERS[c];
+  if ([0,1,2,3,4].every(i => m.has(i+','+i))) return 'Diagonal';
+  if ([0,1,2,3,4].every(i => m.has(i+','+(4-i)))) return 'Diagonal';
+  if (['0,0','0,4','4,0','4,4'].every(k => m.has(k))) return 'Four Corners';
+  return null;
+}
+
+function letterFor(n){
+  for (let i = 0; i < COLUMN_RANGES.length; i++){
+    if (n >= COLUMN_RANGES[i][0] && n <= COLUMN_RANGES[i][1]) return COLUMN_LETTERS[i];
+  }
+  return '';
+}
+
+function updateCallerDisplay(number){
+  document.getElementById('currentBall').textContent = number;
+  document.getElementById('letterLabel').textContent = letterFor(number) + '-' + number;
+  document.getElementById('drawCount').textContent = state.drawn.length + ' of 75 drawn';
+}
+
+function renderCallHistory(){
+  const row = document.getElementById('historyRow');
+  row.innerHTML = '';
+  state.drawn.slice().reverse().forEach(n => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = letterFor(n) + n;
+    row.appendChild(chip);
+  });
+}
+
+function renderCard(){
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+  for (let r = 0; r < 5; r++){
+    for (let c = 0; c < 5; c++){
+      const cell = document.createElement('div');
+      const isFree = r === 2 && c === 2;
+      const marked = state.marked.has(r + ',' + c);
+      cell.className = 'cell' + (isFree ? ' free' : '') + (marked ? ' marked' : '');
+      cell.textContent = isFree ? 'FREE' : state.card[r][c];
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// ---- init ----
+loadBalance();
+if (tg && tg.MainButton) tg.MainButton.hide();
+</script>
+</body>
+</html>
